@@ -231,8 +231,8 @@ get_where0(baseKB:0):-!.
 lco_goal_expansion(V,V):- \+ compound(V),!.
 lco_goal_expansion(loop_check(G),O):-!,lco_goal_expansion(loop_check(G,fail),O).
 lco_goal_expansion(no_loop_check(G),O):-!,lco_goal_expansion(no_loop_check(G,fail),O).
-lco_goal_expansion(loop_check(G,LoopCaught),loop_check_term(G,G:W,LoopCaught)):- get_where(W).
-lco_goal_expansion(no_loop_check(G,LoopCaught),no_loop_check_term(G,G:W,LoopCaught)):- get_where(W).
+lco_goal_expansion(loop_check(G,LoopCaught),loop_check_term(G,info(G,W),LoopCaught)):- get_where(W).
+lco_goal_expansion(no_loop_check(G,LoopCaught),no_loop_check_term(G,info(G,W),LoopCaught)):- get_where(W).
 lco_goal_expansion(B,A):- 
   compound_name_arguments(B,F,ARGS),
   F \== (meta_predicate),
