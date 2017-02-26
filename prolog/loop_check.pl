@@ -4,26 +4,30 @@
             lco_goal_expansion/2,            
             cyclic_break/1,
 
-            make_key/2,reduce_make_key/2,
             loop_check_early/2,loop_check_term/3,
-            loop_check_term_key/3,no_loop_check_term_key/3,
+            loop_check_term/3,no_loop_check_term/3,
             
-            % loop_check/1,loop_check/2,no_loop_check/1,no_loop_check/2,
-            
+            loop_check/1,loop_check/2,no_loop_check/1,no_loop_check/2,
+            current_loop_checker/1,
+            push_loop_checker/0,
+            pop_loop_checker/0,
             transitive/3,
             transitive_except/4,
-            transitive_lc/3
+            transitive_lc/3,
+            call_tabled/1
           ]).
 
+:- use_module(library(tabling)).
+
 :- meta_predicate  
-        call_t(0),
+        call_tabled(0),
 
         loop_check(0), loop_check(0, 0),
         no_loop_check(0), no_loop_check(0, 0),
         
         loop_check_early(0, 0), loop_check_term(0, ?, 0),
 
-        loop_check_term_key(0, ?, 0),no_loop_check_term_key(0, ?, 0),
+        loop_check_term(0, ?, 0),no_loop_check_term(0, ?, 0),
         
         transitive(2, +, -),
         transitive_except(+, 2, +, -),
@@ -41,7 +45,7 @@
         
 :- set_module(class(library)).    
 
-%= 	 	 
+
 
 %% transitive( :PRED2X, +A, -B) is semidet.
 %
@@ -50,7 +54,7 @@
 transitive(X,A,B):- once(on_x_debug(call(X,A,R)) -> ( R\=@=A -> transitive_lc(X,R,B) ; B=R); B=A),!.
 
 
-%= 	 	 
+
 
 %% transitive_lc( :PRED2X, +A, -B) is semidet.
 %
@@ -59,7 +63,7 @@ transitive(X,A,B):- once(on_x_debug(call(X,A,R)) -> ( R\=@=A -> transitive_lc(X,
 transitive_lc(X,A,B):-transitive_except([],X,A,B).
 
 
-%= 	 	 
+
 
 %% transitive_except( +NotIn, :PRED2X, +A, -B) is semidet.
 %
@@ -68,7 +72,7 @@ transitive_lc(X,A,B):-transitive_except([],X,A,B).
 transitive_except(NotIn,X,A,B):- memberchk_same_two(A,NotIn)-> (B=A,!) ;((once(on_x_debug(call(X,A,R)) -> ( R\=@=A -> transitive_except([A|NotIn],X,R,B) ; B=R); B=A))),!.
 
 
-%= 	 	 
+
 
 %% memberchk_same_two( ?X, :TermY0) is semidet.
 %
@@ -90,87 +94,52 @@ cyclic_break(Cyclic):-cyclic_term(Cyclic)->(writeq(cyclic_break(Cyclic)),nl,prol
 % ===================================================================
 :- thread_local lmcache:ilc/1.
 
-% = :- meta_predicate(call_t(0)).
-% call_t(C0):-reduce_make_key(C0,C),!,table(C),!,query(C).
-% call_t(C0):-query(C).
+% = :- meta_predicate(call_tabled(0)).
+% call_tabled(C0):-reduce_make_key(C0,C),!,table(C),!,query(C).
+% call_tabled(C0):-query(C).
 
-%= 	 	 
 
-%% call_t( :GoalC) is semidet.
+
+%% call_tabled( :GoalC) is semidet.
 %
-% Call True Stucture.
+% Call Tabled
 %
-call_t(C):- call(C).
+:- meta_predicate(call_tabled(0)).
+%:- table(call_tabled/1).
+call_tabled(G):- call(G).
 
-:- meta_predicate reduce_make_key(+,-).
-
-%= 	 	 
-
-%% reduce_make_key( +O, -O) is semidet.
-%
-% Reduce Make Key.
-%
-reduce_make_key(call(C),O):-!,reduce_make_key(C,O).
-reduce_make_key(call_u(C),O):-!,reduce_make_key(C,O).
-reduce_make_key(must(C),O):-!,reduce_make_key(C,O).
-reduce_make_key(no_repeats(C),O):-!,reduce_make_key(C,O).
-reduce_make_key(no_repeats(_,C),O):-!,reduce_make_key(C,O).
-reduce_make_key(no_repeats_old(C),O):-!,reduce_make_key(C,O).
-reduce_make_key(no_repeats_old(_,C),O):-!,reduce_make_key(C,O).
-reduce_make_key(call_tabled(C),O):-!,reduce_make_key(C,O).
-reduce_make_key(no_loop_check(C),O):-!,reduce_make_key(C,O).
-reduce_make_key(loop_check(C),O):-!,reduce_make_key(C,O).
-reduce_make_key(loop_check(C,_),O):-!,reduce_make_key(C,O).
-reduce_make_key(loop_check_term_key(C,_,_),O):-!,reduce_make_key(C,O).
-reduce_make_key(loop_check_term(C,_,_),O):-!,reduce_make_key(C,O).
-reduce_make_key(fact_loop_checked(_,C),O):-!,reduce_make_key(C,O).
-reduce_make_key(V+C,V+O):-!,reduce_make_key(C,O).
-reduce_make_key(M:C,O):-atom(M),!,reduce_make_key(C,O).
-reduce_make_key(O,O).
-
-
-
-%= 	 	 
-
-%% cc_key( ?CC, ?Key) is semidet.
-%
-% Cc Key.
-%
-cc_key(CC,Key):- cyclic_term(CC),!,dtrace,copy_term_nat(CC,CKey),numbervars(CKey,0,_),format(atom(Key),'~w',[CKey]),!.
-cc_key(CC,O):- copy_term_nat(CC,Key),numbervars(Key,0,_),!,Key=O.
-
-
-%= 	 	 
-
-%% make_key( ?CC, ?KeyO) is semidet.
-%
-% Make Key.
-%
-make_key(M:CC,KeyO):- atom(M),!,((ground(CC)->Key=CC ; cc_key(CC,Key))),!,KeyO=Key.
-make_key(CC,KeyO):- ((ground(CC)->Key=CC ; cc_key(CC,Key))),!,KeyO=Key.
-:- '$set_predicate_attribute'(make_key(_,_), hide_childs, 1).
-:- '$set_predicate_attribute'(make_key(_,_), trace, 1).
-
-
-%= 	 	 
 
 %% is_loop_checked( ?Call) is semidet.
 %
 % If Is A Loop Checked.
 %
-is_loop_checked(Call):-  make_key(Call,Key),!,(lmcache:ilc(Key);lmcache:ilc(Key+_)).
+is_loop_checked(Call):- current_loop_checker(Trie),trie_lookup(Trie,Call,_Found). 
 
-%= 	 	 
+:- thread_local(loop_checker_for_thread/1).
 
-%% loop_check_early( :GoalCall, :GoalTODO) is semidet.
+current_loop_checker(Trie):-loop_checker_for_thread(Trie),!.
+current_loop_checker(Trie):-trie_new(Trie),asserta(loop_checker_for_thread(Trie)),!.
+
+push_loop_checker :- trie_new(Trie),asserta(loop_checker_for_thread(Trie)).
+pop_loop_checker  :- ignore((retract(loop_checker_for_thread(Trie)),trie_destroy(Trie))).
+
+
+
+%% loop_check_early( :Call, :GoalTODO) is semidet.
 %
 % Loop Check Early.
 %
-loop_check_early(Call, TODO):- loop_check_term_key(Call,Call, TODO).
+loop_check_early(Call, _TODO):- !, Call.
+loop_check_early(Call, TODO):- Key=Call,!,
+  current_loop_checker(Trie) ->
+  (trie_lookup(Trie, Key, Value),Value==1) -> TODO ;
+    each_call_cleanup(trie_insert(Trie, Key, 1),Call,trie_insert(Trie, Key, 0)).
 
-%= 	 	 
+loop_check_early(Call, TODO):- loop_check(Call, TODO).
 
-%% loop_check( :GoalCall) is semidet.
+
+
+%% loop_check( :Call) is semidet.
 %
 % Loop Check.
 %
@@ -178,79 +147,57 @@ loop_check(Call):- loop_check(Call, fail).
 
 :- export(loop_check/2).
 
-%= 	 	 
 
-%% loop_check( :GoalCall, :GoalTODO) is semidet.
+
+%% loop_check( :Call, :GoalTODO) is semidet.
 %
 % Loop Check.
 %
-loop_check(Call, TODO):- !,loop_check_early(Call, TODO).
-loop_check(Call, TODO):- parent_goal(ParentCall,1)->(loop_check_term_key(Call,Call+ParentCall, TODO));loop_check_early(Call, TODO).
-
-%= 	 	 
-
-%% loop_check_term_key( :GoalCall, ?KeyIn, :GoalTODO) is semidet.
-%
-% Loop Check Term Key.
-%
-loop_check_term_key(Call,_,_):- current_prolog_flag(unsafe_speedups , true) , 1 is random(2),!,call(Call).
-loop_check_term_key(Call,KeyIn,TODO):- notrace(make_key(KeyIn,Key)) -> loop_check_term(Call,Key,TODO).
+loop_check(Call, TODO):- !,loop_check_term(Call,Call,TODO).
+% loop_check(Call, TODO):- parent_goal(ParentCall,1)->(loop_check_term(Call,Call+ParentCall, TODO));loop_check_early(Call, TODO).
 
 
 
-%= 	 	 
 
-%% no_loop_check( :GoalCall) is semidet.
+
+
+%% no_loop_check( :Call) is semidet.
 %
 % No Loop Check.
 %
 no_loop_check(Call):- no_loop_check(Call, fail).
 
-%= 	 	 
 
-%% no_loop_check( :GoalCall, :GoalTODO) is semidet.
+
+%% no_loop_check( :Call, :GoalTODO) is semidet.
 %
 % No Loop Check.
 %
+no_loop_check(Call, TODO):- no_loop_check_term(Call,Call,TODO).
 
-no_loop_check(Call, TODO):- no_loop_check_term_key(Call,Call,TODO).
-%no_loop_check(Call, TODO):- parent_goal(Term,2)->no_loop_check_term_key(Call,Term+Call, TODO).
 
-%= 	 	 
-
-%% no_loop_check_term_key( :GoalCall, ?KeyIn, :GoalTODO) is semidet.
+%% no_loop_check_term( :Call, ?Key, :GoalTODO) is semidet.
 %
 % No Loop Check Term Key.
 %
-no_loop_check_term_key(Call,KeyIn,TODO):- make_key(KeyIn,Key) -> locally_hide(lmcache:ilc(_),loop_check_term(Call,Key,TODO)).
+no_loop_check_term(Call,_Key,_TODO):-!,Call.
+no_loop_check_term(Call,Key,TODO):- 
+   each_call_cleanup(push_loop_checker,
+                     loop_check_term(Call,Key,TODO),
+                     pop_loop_checker).
 
-%= 	 	 
 
-%% loop_check_term( :GoalCall, ?Key, :GoalTODO) is semidet.
+%% loop_check_term( :Call, ?Key, :GoalTODO) is semidet.
 %
 % Loop Check Term 50% of the time
 %
-% loop_check_term(Call,_Key,_TODO):- 1 is random(2) ,!,call(Call).
+loop_check_term(Call,_Key,_TODO):-!,Call.
+loop_check_term(Call,_Key,_TODO):-current_prolog_flag(unsafe_speedups , true) , 1 is random(2),!,call(Call).
+loop_check_term(Call,Key,TODO):- 
+  current_loop_checker(Trie) ->
+  (trie_lookup(Trie, Key, Value),Value==1) -> TODO ;
+    each_call_cleanup(trie_insert(Trie, Key, 1),Call,trie_insert(Trie, Key, 0)).
 
-loop_check_term(Call,_Key,_TODO):-current_prolog_flag(unsafe_speedups , true) , 1 is random(2),!, 
-  call(Call).
-loop_check_term(Call,Key,TODO):- notrace(TT = lmcache:ilc(Key)),
- ( notrace( \+(TT)) -> locally_each(TT, Call);  call(TODO)).
-
-   % ((can_fail(TODO)->retract_can_table;true),call(TODO)).
-
-
-%= 	 	 
-
-%% can_fail( ?G) is semidet.
-%
-% Can Fail.
-%
-can_fail(G):-not(G=true),not(G=must(_)).
-
-% get_where(When)
-
-%= 	 	 
 
 %% get_where( :TermB) is semidet.
 %
@@ -258,7 +205,7 @@ can_fail(G):-not(G=true),not(G=must(_)).
 %
 get_where(B:L):-get_where0(F:L),file_base_name(F,B).
 
-%= 	 	 
+
 
 %% get_where0( :GoalF) is semidet.
 %
@@ -271,18 +218,18 @@ get_where0(M:0):-source_context_module(M),!.
 get_where0(baseKB:0):-!.
 
 
-%= 	 	 
+
 
 %% lco_goal_expansion( :TermB, :TermA) is semidet.
 %
-% Lco Goal Expansion.
+% Lco Call Expansion.
 %
 
 lco_goal_expansion(V,V):- \+ compound(V),!.
 lco_goal_expansion(loop_check(G),O):-!,lco_goal_expansion(loop_check(G,fail),O).
 lco_goal_expansion(no_loop_check(G),O):-!,lco_goal_expansion(no_loop_check(G,fail),O).
-lco_goal_expansion(loop_check(G,TODO),loop_check_term_key(G,G:W,TODO)):- get_where(W).
-lco_goal_expansion(no_loop_check(G,TODO),no_loop_check_term_key(G,G:W,TODO)):- get_where(W).
+lco_goal_expansion(loop_check(G,TODO),loop_check_term(G,G:W,TODO)):- get_where(W).
+lco_goal_expansion(no_loop_check(G,TODO),no_loop_check_term(G,G:W,TODO)):- get_where(W).
 lco_goal_expansion(B,A):- 
   compound_name_arguments(B,F,ARGS),
   maplist(lco_goal_expansion,ARGS,AARGS),
