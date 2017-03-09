@@ -47,7 +47,7 @@
 
 
 
-%% transitive( :PRED2X, +A, -B) is semidet.
+%% transitive( :PRED2X, +A, -B) is nondet.
 %
 % Transitive.
 %
@@ -56,7 +56,7 @@ transitive(X,A,B):- once(on_x_debug(call(X,A,R)) -> ( R\=@=A -> transitive_lc(X,
 
 
 
-%% transitive_lc( :PRED2X, +A, -B) is semidet.
+%% transitive_lc( :PRED2X, +A, -B) is nondet.
 %
 % Transitive Not Loop Checked.
 %
@@ -65,7 +65,7 @@ transitive_lc(X,A,B):-transitive_except([],X,A,B).
 
 
 
-%% transitive_except( +NotIn, :PRED2X, +A, -B) is semidet.
+%% transitive_except( +NotIn, :PRED2X, +A, -B) is nondet.
 %
 % Transitive Except.
 %
@@ -74,7 +74,7 @@ transitive_except(NotIn,X,A,B):- memberchk_same_two(A,NotIn)-> (B=A,!) ;((once(o
 
 
 
-%% memberchk_same_two( ?X, :TermY0) is semidet.
+%% memberchk_same_two( ?X, :TermY0) is nondet.
 %
 % Memberchk Same Two.
 %
@@ -82,7 +82,7 @@ memberchk_same_two(X, [Y0|Ys]) :- is_list(Ys),!,C=..[v,Y0|Ys],!, arg(_,C,Y), ( X
 memberchk_same_two(X, [Y|Ys]) :- (   X =@= Y ->  (var(X) -> X==Y ; true) ;   (nonvar(Ys),memberchk_same_two(X, Ys) )).
 
 
-%% cyclic_break( ?Cyclic) is semidet.
+%% cyclic_break( ?Cyclic) is nondet.
 %
 % Cyclic Break.
 %
@@ -100,7 +100,7 @@ cyclic_break(Cyclic):-cyclic_term(Cyclic)->(writeq(cyclic_break(Cyclic)),nl,prol
 
 
 
-%% call_tabled( :GoalC) is semidet.
+%% call_tabled( :GoalC) is nondet.
 %
 % Call Tabled
 %
@@ -109,7 +109,7 @@ cyclic_break(Cyclic):-cyclic_term(Cyclic)->(writeq(cyclic_break(Cyclic)),nl,prol
 call_tabled(G):- call(G).
 
 
-%% is_loop_checked( ?Call) is semidet.
+%% is_loop_checked( ?Call) is nondet.
 %
 % If Is A Loop Checked.
 %
@@ -125,21 +125,15 @@ pop_loop_checker  :- ignore((retract(loop_checker_for_thread(Trie)),trie_destroy
 
 
 
-%% loop_check_early( :Call, :GoalTODO) is semidet.
+%% loop_check_early( :Call, :LoopCaught) is nondet.
 %
 % Loop Check Early.
 %
-loop_check_early(Call, _TODO):- !, Call.
-loop_check_early(Call, TODO):- Key=Call,!,
-  current_loop_checker(Trie) ->
-  (trie_lookup(Trie, Key, Value),Value==1) -> TODO ;
-    each_call_cleanup(trie_insert(Trie, Key, 1),Call,trie_insert(Trie, Key, 0)).
-
-loop_check_early(Call, TODO):- loop_check(Call, TODO).
+loop_check_early(Call, LoopCaught):- loop_check(Call, LoopCaught).
 
 
 
-%% loop_check( :Call) is semidet.
+%% loop_check( :Call) is nondet.
 %
 % Loop Check.
 %
@@ -149,19 +143,21 @@ loop_check(Call):- loop_check(Call, fail).
 
 
 
-%% loop_check( :Call, :GoalTODO) is semidet.
+%% loop_check( :Call, :OnLoopCaught) is nondet.
 %
 % Loop Check.
 %
-loop_check(Call, TODO):- !,loop_check_term(Call,Call,TODO).
-% loop_check(Call, TODO):- parent_goal(ParentCall,1)->(loop_check_term(Call,Call+ParentCall, TODO));loop_check_early(Call, TODO).
+loop_check(Call, LoopCaught):- 
+ parent_goal(ParentCall,1)->
+  loop_check_term(Call,Call+ParentCall, LoopCaught);
+  loop_check_term(Call,Call,LoopCaught).
 
 
 
 
 
 
-%% no_loop_check( :Call) is semidet.
+%% no_loop_check( :Call) is nondet.
 %
 % No Loop Check.
 %
@@ -169,37 +165,44 @@ no_loop_check(Call):- no_loop_check(Call, fail).
 
 
 
-%% no_loop_check( :Call, :GoalTODO) is semidet.
+%% no_loop_check( :Call, :LoopCaught) is nondet.
 %
 % No Loop Check.
 %
-no_loop_check(Call, TODO):- no_loop_check_term(Call,Call,TODO).
+no_loop_check(Call, LoopCaught):- no_loop_check_term(Call,Call,LoopCaught).
 
 
-%% no_loop_check_term( :Call, ?Key, :GoalTODO) is semidet.
+%% no_loop_check_term( :Call, ?Key, :LoopCaught) is nondet.
 %
 % No Loop Check Term Key.
 %
-no_loop_check_term(Call,_Key,_TODO):-!,Call.
-no_loop_check_term(Call,Key,TODO):- 
+% no_loop_check_term(Call,_Key,_LoopCaught):-!,Call.
+no_loop_check_term(Call,Key,LoopCaught):- 
    each_call_cleanup(push_loop_checker,
-                     loop_check_term(Call,Key,TODO),
+                     loop_check_term(Call,Key,LoopCaught),
                      pop_loop_checker).
 
 
-%% loop_check_term( :Call, ?Key, :GoalTODO) is semidet.
+make_key(Key0,lmcache:ilc(Key)):- copy_term(Key0,Key),numbervars(Key,242,_,[attvar(bind)]).
+
+
+%% loop_check_term( :Call, ?Key, :LoopCaught) is nondet.
 %
 % Loop Check Term 50% of the time
 %
-loop_check_term(Call,_Key,_TODO):-!,Call.
-loop_check_term(Call,_Key,_TODO):-current_prolog_flag(unsafe_speedups , true) , 1 is random(2),!,call(Call).
-loop_check_term(Call,Key,TODO):- 
-  current_loop_checker(Trie) ->
-  (trie_lookup(Trie, Key, Value),Value==1) -> TODO ;
+%loop_check_term(Call,_Key,_LoopCaught):-!,Call.
+loop_check_term(Call,_Key,_LoopCaught):-current_prolog_flag(unsafe_speedups , true) , 1 is random(2),!,call(Call).
+loop_check_term(Call,Key0,LoopCaught):- make_key(Key0,Key),
+  (Key -> LoopCaught ; locally(Key,Call)).
+
+/*
+loop_check_term(Call,Key,LoopCaught):- 
+  current_loop_checker(Trie) ,
+  (trie_lookup(Trie, Key, Value),Value==1) -> LoopCaught ;
     each_call_cleanup(trie_insert(Trie, Key, 1),Call,trie_insert(Trie, Key, 0)).
+*/
 
-
-%% get_where( :TermB) is semidet.
+%% get_where( :TermB) is nondet.
 %
 % Get Where.
 %
@@ -207,7 +210,7 @@ get_where(B:L):-get_where0(F:L),file_base_name(F,B).
 
 
 
-%% get_where0( :GoalF) is semidet.
+%% get_where0( :GoalF) is nondet.
 %
 % Get Where Primary Helper.
 %
@@ -220,7 +223,7 @@ get_where0(baseKB:0):-!.
 
 
 
-%% lco_goal_expansion( :TermB, :TermA) is semidet.
+%% lco_goal_expansion( :TermB, :TermA) is nondet.
 %
 % Lco Call Expansion.
 %
@@ -228,13 +231,14 @@ get_where0(baseKB:0):-!.
 lco_goal_expansion(V,V):- \+ compound(V),!.
 lco_goal_expansion(loop_check(G),O):-!,lco_goal_expansion(loop_check(G,fail),O).
 lco_goal_expansion(no_loop_check(G),O):-!,lco_goal_expansion(no_loop_check(G,fail),O).
-lco_goal_expansion(loop_check(G,TODO),loop_check_term(G,G:W,TODO)):- get_where(W).
-lco_goal_expansion(no_loop_check(G,TODO),no_loop_check_term(G,G:W,TODO)):- get_where(W).
+lco_goal_expansion(loop_check(G,LoopCaught),loop_check_term(G,G:W,LoopCaught)):- get_where(W).
+lco_goal_expansion(no_loop_check(G,LoopCaught),no_loop_check_term(G,G:W,LoopCaught)):- get_where(W).
 lco_goal_expansion(B,A):- 
   compound_name_arguments(B,F,ARGS),
+  F \== (meta_predicate),
   maplist(lco_goal_expansion,ARGS,AARGS),
   compound_name_arguments(A,F,AARGS).
-
+lco_goal_expansion(A,A).
 
 :- dynamic system:goal_expansion/2.
 :- multifile system:goal_expansion/2.
