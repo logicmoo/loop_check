@@ -105,7 +105,7 @@ cyclic_break(Cyclic):-cyclic_term(Cyclic)->(writeq(cyclic_break(Cyclic)),nl,prol
 % Call Tabled
 %
 :- meta_predicate(call_tabled(0)).
-%:- table(call_tabled/1).
+:- table(call_tabled/1).
 call_tabled(G):- call(G).
 
 
