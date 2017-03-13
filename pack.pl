@@ -1,5 +1,5 @@
 name(loop_check).
-version('1.1.112').
+version('1.1.113').
 title('New simple loop checking').
 keywords([source,goal_expansion]).
 author( 'Douglas Miles', 'http://www.linkedin.com/in/logicmoo' ).
