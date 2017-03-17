@@ -14,13 +14,13 @@
             transitive/3,
             transitive_except/4,
             transitive_lc/3,
-            call_tabled/1
+            lc_tcall/1
           ]).
 
 :- use_module(library(tabling)).
 
 :- meta_predicate  
-        call_tabled(0),
+        lc_tcall(0),
 
         loop_check(0), loop_check(0, 0),
         no_loop_check(0), no_loop_check(0, 0),
@@ -94,19 +94,19 @@ cyclic_break(Cyclic):-cyclic_term(Cyclic)->(writeq(cyclic_break(Cyclic)),nl,prol
 % ===================================================================
 :- thread_local lmcache:ilc/1.
 
-% = :- meta_predicate(call_tabled(0)).
-% call_tabled(C0):-reduce_make_key(C0,C),!,table(C),!,query(C).
-% call_tabled(C0):-query(C).
+% = :- meta_predicate(lc_tcall(0)).
+% lc_tcall(C0):-reduce_make_key(C0,C),!,table(C),!,query(C).
+% lc_tcall(C0):-query(C).
 
 
 
-%% call_tabled( :GoalC) is nondet.
+%% lc_tcall( :GoalC) is nondet.
 %
 % Call Tabled
 %
-:- meta_predicate(call_tabled(0)).
-:- table(call_tabled/1).
-call_tabled(G):- call(G).
+:- meta_predicate(lc_tcall(0)).
+:- table(lc_tcall/1).
+lc_tcall(G):- call(G).
 
 
 %% is_loop_checked( ?Call) is nondet.

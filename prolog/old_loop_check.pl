@@ -117,7 +117,7 @@ reduce_make_key(no_repeats(C),O):-!,reduce_make_key(C,O).
 reduce_make_key(no_repeats(_,C),O):-!,reduce_make_key(C,O).
 reduce_make_key(no_repeats_old(C),O):-!,reduce_make_key(C,O).
 reduce_make_key(no_repeats_old(_,C),O):-!,reduce_make_key(C,O).
-reduce_make_key(call_tabled(C),O):-!,reduce_make_key(C,O).
+reduce_make_key(lc_tcall(C),O):-!,reduce_make_key(C,O).
 reduce_make_key(no_loop_check(C),O):-!,reduce_make_key(C,O).
 reduce_make_key(loop_check(C),O):-!,reduce_make_key(C,O).
 reduce_make_key(loop_check(C,_),O):-!,reduce_make_key(C,O).
