@@ -15,6 +15,7 @@
             transitive_lc/3
           ]).
 
+
 :- meta_predicate  
         call_t(0),
 
