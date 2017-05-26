@@ -17,7 +17,8 @@
             lc_tcall/1
           ]).
 
-:- use_module(library(tabling)).
+%:- use_module(library(tabling)).
+:- use_module(library(each_call_cleanup)).
 
 :- meta_predicate  
         lc_tcall(0),
@@ -105,8 +106,8 @@ cyclic_break(Cyclic):-cyclic_term(Cyclic)->(writeq(cyclic_break(Cyclic)),nl,prol
 % Call Tabled
 %
 :- meta_predicate(lc_tcall(0)).
-:- table(lc_tcall/1).
-lc_tcall(G):- call(G).
+%:- table(lc_tcall/1).
+lc_tcall(G):- loop_check(call(G)).
 
 
 %% is_loop_checked( ?Call) is nondet.
