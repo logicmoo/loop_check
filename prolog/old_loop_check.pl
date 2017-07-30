@@ -1,4 +1,6 @@
 % File: /opt/PrologMUD/pack/logicmoo_base/prolog/logicmoo/util/logicmoo_util_loop_check.pl
+end_of_file.
+
 :- module(old_loop_check,
           [ is_loop_checked/1,
             lco_goal_expansion/2,            
