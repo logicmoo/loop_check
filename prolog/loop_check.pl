@@ -241,7 +241,11 @@ lco_goal_expansion(B,A):-
   compound_name_arguments(A,F,AARGS).
 lco_goal_expansion(A,A).
 
-:- dynamic system:goal_expansion/2.
-:- multifile system:goal_expansion/2.
+:- fixup_exports.
+
+:- multifile system:goal_expansion/4.
+:- dynamic system:goal_expansion/4.
 system:goal_expansion(LC,Pos,LCO,Pos):- compound(LC),lco_goal_expansion(LC,LCO)->LC\=@=LCO.
+
+
 
