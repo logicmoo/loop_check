@@ -197,7 +197,7 @@ loop_check(Call, TODO):- parent_goal(ParentCall,1)->(loop_check_term_key(Call,Ca
 % Loop Check Term Key.
 %
 loop_check_term_key(Call,_,_):- current_prolog_flag(unsafe_speedups , true) , 1 is random(2),!,call(Call).
-loop_check_term_key(Call,KeyIn,TODO):- notrace(make_key(KeyIn,Key)) -> loop_check_term(Call,Key,TODO).
+loop_check_term_key(Call,KeyIn,TODO):- quietly(make_key(KeyIn,Key)) -> loop_check_term(Call,Key,TODO).
 
 
 
@@ -237,8 +237,8 @@ no_loop_check_term_key(Call,KeyIn,TODO):- make_key(KeyIn,Key) -> locally_hide(lm
 
 loop_check_term(Call,_Key,_TODO):-current_prolog_flag(unsafe_speedups , true) , 1 is random(2),!, 
   call(Call).
-loop_check_term(Call,Key,TODO):- notrace(TT = lmcache:ilc(Key)),
- ( notrace( \+(TT)) -> locally_each(TT, Call);  call(TODO)).
+loop_check_term(Call,Key,TODO):- quietly(TT = lmcache:ilc(Key)),
+ ( quietly( \+(TT)) -> locally_each(TT, Call);  call(TODO)).
 
    % ((can_fail(TODO)->retract_can_table;true),call(TODO)).
 

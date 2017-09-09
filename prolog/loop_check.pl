@@ -17,6 +17,9 @@
             lc_tcall/1
           ]).
 
+:- use_module(library(apply)).
+
+
 %:- use_module(library(tabling)).
 :- use_module(library(each_call_cleanup)).
 
@@ -192,8 +195,8 @@ make_key(Key0,lmcache:ilc(Key)):- copy_term(Key0,Key),numbervars(Key,242,_,[attv
 % Loop Check Term 50% of the time
 %
 %loop_check_term(Call,_Key,_LoopCaught):-!,Call.
-loop_check_term(Call,_Key,_LoopCaught):- notrace((current_prolog_flag(unsafe_speedups , true) , 1 is random(2))),!,call(Call).
-loop_check_term(Call,Key0,LoopCaught):- notrace(make_key(Key0,Key)),
+loop_check_term(Call,_Key,_LoopCaught):- quietly((current_prolog_flag(unsafe_speedups , true) , 1 is random(2))),!,call(Call).
+loop_check_term(Call,Key0,LoopCaught):- quietly(make_key(Key0,Key)),
   (Key -> LoopCaught ; locally(Key,Call)).
 
 
