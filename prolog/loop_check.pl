@@ -187,7 +187,8 @@ no_loop_check_term(Call,Key,LoopCaught):-
                      pop_loop_checker).
 
 
-make_key(Key0,lmcache:ilc(Key)):- copy_term(Key0,Key),numbervars(Key,242,_,[attvar(bind)]).
+
+make_key(Key0,lmcache:ilc(Key)):- copy_term_nat(Key0,Key),numbervars(Key,242,_,[attvar(error)]).
 
 
 %% loop_check_term( :Call, ?Key, :LoopCaught) is nondet.
