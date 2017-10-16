@@ -73,7 +73,8 @@ transitive_lc(X,A,B):-transitive_except([],X,A,B).
 %
 % Transitive Except.
 %
-transitive_except(NotIn,X,A,B):- memberchk_same_two(A,NotIn)-> (B=A,!) ;((once(on_x_debug(call(X,A,R)) -> ( R\=@=A -> transitive_except([A|NotIn],X,R,B) ; B=R); B=A))),!.
+transitive_except(NotIn,X,A,B):- memberchk_same_two(A,NotIn)-> (B=A,!) ;
+  ((once(on_x_debug(call(X,A,R)) -> ( R\=@=A -> transitive_except([A|NotIn],X,R,B) ; B=R); B=A))),!.
 
 
 
@@ -96,7 +97,8 @@ cyclic_break(Cyclic):-cyclic_term(Cyclic)->(writeq(cyclic_break(Cyclic)),nl,prol
 % ===================================================================
 % Loop checking
 % ===================================================================
-:- thread_local lmcache:ilc/1.
+:- thread_local lmcache:ilc/2.
+:- thread_local lmcache:ilc/3.
 
 % = :- meta_predicate(lc_tcall(0)).
 % lc_tcall(C0):-reduce_make_key(C0,C),!,table(C),!,query(C).
@@ -111,21 +113,6 @@ cyclic_break(Cyclic):-cyclic_term(Cyclic)->(writeq(cyclic_break(Cyclic)),nl,prol
 :- meta_predicate(lc_tcall(0)).
 %:- table(lc_tcall/1).
 lc_tcall(G):- loop_check(call(G)).
-
-
-%% is_loop_checked( ?Call) is nondet.
-%
-% If Is A Loop Checked.
-%
-is_loop_checked(Call):- current_loop_checker(Trie),trie_lookup(Trie,Call,_Found). 
-
-:- thread_local(loop_checker_for_thread/1).
-
-current_loop_checker(Trie):-loop_checker_for_thread(Trie),!.
-current_loop_checker(Trie):-trie_new(Trie),asserta(loop_checker_for_thread(Trie)),!.
-
-push_loop_checker :- trie_new(Trie),asserta(loop_checker_for_thread(Trie)).
-pop_loop_checker  :- ignore((retract(loop_checker_for_thread(Trie)),trie_destroy(Trie))).
 
 
 
@@ -143,8 +130,6 @@ loop_check_early(Call, LoopCaught):- loop_check(Call, LoopCaught).
 %
 loop_check(Call):- loop_check(Call, fail).
 
-:- export(loop_check/2).
-
 
 
 %% loop_check( :Call, :OnLoopCaught) is nondet.
@@ -152,12 +137,7 @@ loop_check(Call):- loop_check(Call, fail).
 % Loop Check.
 %
 loop_check(Call, LoopCaught):- 
- parent_goal(ParentCall,1)->
-  loop_check_term(Call,Call+ParentCall, LoopCaught);
   loop_check_term(Call,Call,LoopCaught).
-
-
-
 
 
 
@@ -176,44 +156,75 @@ no_loop_check(Call):- no_loop_check(Call, fail).
 no_loop_check(Call, LoopCaught):- no_loop_check_term(Call,Call,LoopCaught).
 
 
-%% no_loop_check_term( :Call, ?Key, :LoopCaught) is nondet.
+%% no_loop_check_term( :Call, +Key, :LoopCaught) is nondet.
 %
-% No Loop Check Term Key.
+% Pushes a new Loop checking frame so all previous checks are suspended
 %
 % no_loop_check_term(Call,_Key,_LoopCaught):-!,Call.
 no_loop_check_term(Call,Key,LoopCaught):- 
-   each_call_cleanup(push_loop_checker,
+   trusted_redo_call_cleanup(push_loop_checker,
                      loop_check_term(Call,Key,LoopCaught),
                      pop_loop_checker).
 
+:- nb_setval('$loop_checker',1).
+:- initialization(nb_setval('$loop_checker',1),restore).
+current_loop_checker(LC):- ((nb_current('$loop_checker',LC),number(LC))->true;LC=0).
+push_loop_checker :- current_loop_checker(LC),LC2 is LC+1,nb_setval('$loop_checker',LC2).
+pop_loop_checker :- current_loop_checker(LC),LC2 is LC-1,nb_setval('$loop_checker',LC2).
 
 
-make_key(Key0,lmcache:ilc(Key)):- copy_term_nat(Key0,Key),numbervars(Key,242,_,[attvar(error)]).
+%% is_loop_checked( ?Call) is nondet.
+%
+% If Is A Loop Checked.
+%
+is_loop_checked(Key):- 
+  prolog_current_frame(Frame),
+  notrace(make_frame_key(Key,Frame,KeyS,GoaL,SearchFrame)),
+  loop_check_term_frame(fail,KeyS,GoaL,SearchFrame,true).
 
 
-%% loop_check_term( :Call, ?Key, :LoopCaught) is nondet.
+make_frame_key(Key,Frame,Part1,Part2,Parent2):-
+  prolog_frame_attribute(Frame,parent,Parent1),
+  prolog_frame_attribute(Parent1,parent,Parent2),
+  make_key(Key,Part1,Part2).
+
+make_key(key(Part1),Part1,Part2):-!,current_loop_checker(Part2).
+make_key(key(Key,GoaLs),Part1,Part2):-!,current_loop_checker(LC),make_key5(Key,GoaLs,LC,Part1,Part2).
+make_key(Key,Key,Part2):- ground(Key),!,current_loop_checker(Part2).
+make_key(Key,Part1,Part2):- copy_term(Key,KeyS,GoaLs),current_loop_checker(LC),make_key5(KeyS,GoaLs,LC,Part1,Part2).
+
+make_key5(Part1,[],LC,Part1,LC):-!,numbervars(Part1,242,_,[attvar(error)]).
+make_key5(Part1,GoaLs,LC,Part1,[LC|GoaLs]):-numbervars(Part1+GoaLs,242,_,[attvar(error)]).
+
+
+     
+
+loop_check_term_frame(Call,KeyS,GoaL,SearchFrame,LoopCaught):- 
+   notrace(prolog_frame_attribute(SearchFrame,parent_goal,
+      loop_check_term_frame(_,KeyS,GoaL,_,_)))
+    -> LoopCaught 
+    ;  Call.
+
+
+
+%% loop_check_term( :Call, +Key, :LoopCaught) is nondet.
 %
 % Loop Check Term 50% of the time
 %
-%loop_check_term(Call,_Key,_LoopCaught):-!,Call.
-loop_check_term(Call,_Key,_LoopCaught):- quietly((current_prolog_flag(unsafe_speedups , true) , 1 is random(2))),!,call(Call).
-loop_check_term(Call,Key0,LoopCaught):- quietly(make_key(Key0,Key)),
-  (Key -> LoopCaught ; locally(Key,Call)).
+loop_check_term(Call,_Key,_LoopCaught):- notrace((current_prolog_flag(unsafe_speedups , true) , 1 is random(2))),!,call(Call).
+% loop_check_term(Call,_Key,_LoopCaught):-!,Call.
 
-
-/*
 loop_check_term(Call,Key,LoopCaught):- 
-  current_loop_checker(Trie) ,
-  (trie_lookup(Trie, Key, Value),Value==1) -> LoopCaught ;
-    each_call_cleanup(trie_insert(Trie, Key, 1),Call,trie_insert(Trie, Key, 0)).
-*/
+   prolog_current_frame(Frame),
+   notrace(make_frame_key(Key,Frame,KeyS,GoaL,SearchFrame)),
+   loop_check_term_frame(Call,KeyS,GoaL,SearchFrame,LoopCaught).
+
 
 %% get_where( :TermB) is nondet.
 %
 % Get Where.
 %
 get_where(B:L):-get_where0(F:L),file_base_name(F,B).
-
 
 
 %% get_where0( :GoalF) is nondet.
@@ -253,4 +264,27 @@ lco_goal_expansion(A,A).
 system:goal_expansion(LC,Pos,LCO,Pos):- compound(LC),lco_goal_expansion(LC,LCO)->LC\=@=LCO.
 
 
+end_of_file.
+
+Old stuff
+
+
+/*
+
+make_key(Key0,M,lmcache:ilc(M,Key,GoaL)):- var(Key0),!,copy_term(Key0,Key,GoaL),numbervars(Key+GoaL,242,_,[attvar(error)]).
+make_key(key(Key),M,lmcache:ilc(M,Key)):- !.
+make_key(nat(Key0),M,lmcache:ilc(M,Key)):- !, copy_term_nat(Key0,Key),numbervars(Key,242,_,[attvar(error)]).
+make_key(Key,M,lmcache:ilc(M,Key)):- ground(Key),!.
+make_key(Key0,M,lmcache:ilc(M,Key,GoaL)):- copy_term(Key0,Key,GoaL),numbervars(Key+GoaL,242,_,[attvar(error)]).
+
+old_loop_check_term(Call,Key0,LoopCaught):- strip_module(Call,M,_),
+   quietly(make_key(Key0,M,Key)),!,
+   (Key -> ((LoopCaught)) ; M:locally_each(Key,Call)).
+
+
+loop_check_term(Call,Key,LoopCaught):- 
+  current_loop_checker(Trie) ,
+  (trie_lookup(Trie, Key, Value),Value==1) -> LoopCaught ;
+    each_call_cleanup(trie_insert(Trie, Key, 1),Call,trie_insert(Trie, Key, 0)).
+*/
 
