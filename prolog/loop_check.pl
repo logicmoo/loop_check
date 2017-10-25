@@ -179,14 +179,15 @@ pop_loop_checker :- current_loop_checker(LC),LC2 is LC-1,nb_setval('$loop_checke
 %
 is_loop_checked(Key):- 
   prolog_current_frame(Frame),
-  notrace(make_frame_key(Key,Frame,KeyS,GoaL,SearchFrame)),
+  make_frame_key(Key,Frame,KeyS,GoaL,SearchFrame),
   loop_check_term_frame(fail,KeyS,GoaL,SearchFrame,true).
 
 
-make_frame_key(Key,Frame,Part1,Part2,Parent2):-
+make_frame_key(Key,Frame,Part1,Part2,Parent1):-
   prolog_frame_attribute(Frame,parent,Parent1),
-  prolog_frame_attribute(Parent1,parent,Parent2),
   make_key(Key,Part1,Part2).
+
+:- '$hide'(make_frame_key/5).
 
 make_key(key(Part1),Part1,Part2):-!,current_loop_checker(Part2).
 make_key(key(Key,GoaLs),Part1,Part2):-!,current_loop_checker(LC),make_key5(Key,GoaLs,LC,Part1,Part2).
@@ -200,8 +201,8 @@ make_key5(Part1,GoaLs,LC,Part1,[LC|GoaLs]):-numbervars(Part1+GoaLs,242,_,[attvar
      
 
 loop_check_term_frame(Call,KeyS,GoaL,SearchFrame,LoopCaught):- 
-   notrace(prolog_frame_attribute(SearchFrame,parent_goal,
-      loop_check_term_frame(_,KeyS,GoaL,_,_)))
+   prolog_frame_attribute(SearchFrame,parent_goal,
+      loop_check_term_frame(_,KeyS,GoaL,_,_))
     -> LoopCaught 
     ;  Call.
 
@@ -211,12 +212,13 @@ loop_check_term_frame(Call,KeyS,GoaL,SearchFrame,LoopCaught):-
 %
 % Loop Check Term 50% of the time
 %
-loop_check_term(Call,_Key,_LoopCaught):- notrace((current_prolog_flag(unsafe_speedups , true) , 1 is random(2))),!,call(Call).
+
+%loop_check_term(Call,_Key,_LoopCaught):- zotrace((current_prolog_flag(unsafe_speedups , true) , 1 is random(2))),!,call(Call).
 % loop_check_term(Call,_Key,_LoopCaught):-!,Call.
 
 loop_check_term(Call,Key,LoopCaught):- 
    prolog_current_frame(Frame),
-   notrace(make_frame_key(Key,Frame,KeyS,GoaL,SearchFrame)),
+   make_frame_key(Key,Frame,KeyS,GoaL,SearchFrame),
    loop_check_term_frame(Call,KeyS,GoaL,SearchFrame,LoopCaught).
 
 
