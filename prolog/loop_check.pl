@@ -179,7 +179,7 @@ pop_loop_checker :- current_loop_checker(LC),LC2 is LC-1,nb_setval('$loop_checke
 %
 is_loop_checked(Key):- 
   prolog_current_frame(Frame),
-  make_frame_key(Key,Frame,KeyS,GoaL,SearchFrame),
+  notrace(make_frame_key(Key,Frame,KeyS,GoaL,SearchFrame)),
   loop_check_term_frame(fail,KeyS,GoaL,SearchFrame,true).
 
 
@@ -218,7 +218,7 @@ loop_check_term_frame(Call,KeyS,GoaL,SearchFrame,LoopCaught):-
 
 loop_check_term(Call,Key,LoopCaught):- 
    prolog_current_frame(Frame),
-   make_frame_key(Key,Frame,KeyS,GoaL,SearchFrame),
+   notrace(make_frame_key(Key,Frame,KeyS,GoaL,SearchFrame)),
    loop_check_term_frame(Call,KeyS,GoaL,SearchFrame,LoopCaught).
 
 
