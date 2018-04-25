@@ -166,7 +166,7 @@ no_loop_check_term(Call,Key,LoopCaught):-
                      loop_check_term(Call,Key,LoopCaught),
                      pop_loop_checker).
 
-:- nb_setval('$loop_checker',1).
+:- thread_initialization(nb_setval('$loop_checker',1)).
 :- initialization(nb_setval('$loop_checker',1),restore).
 current_loop_checker(LC):- ((nb_current('$loop_checker',LC),number(LC))->true;LC=0).
 push_loop_checker :- current_loop_checker(LC),LC2 is LC+1,nb_setval('$loop_checker',LC2).
