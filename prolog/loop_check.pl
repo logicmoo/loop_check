@@ -22,6 +22,8 @@
 
 %:- use_module(library(tabling)).
 :- use_module(library(each_call_cleanup)).
+:- use_module(library(logicmoo_util_startup)).
+
 
 :- meta_predicate  
         lc_tcall(0),
