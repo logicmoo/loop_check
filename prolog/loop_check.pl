@@ -265,7 +265,7 @@ lco_goal_expansion(A,A).
 
 :- multifile system:goal_expansion/4.
 :- dynamic system:goal_expansion/4.
-system:goal_expansion(LC,Pos,LCO,Pos):- compound(LC),lco_goal_expansion(LC,LCO)->LC\=@=LCO.
+system:goal_expansion(LC,Pos,LCO,Pos):- notrace((compound(LC),lco_goal_expansion(LC,LCO)))->LC\=@=LCO.
 
 
 end_of_file.
