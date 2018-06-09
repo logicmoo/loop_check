@@ -17,6 +17,23 @@
             lc_tcall/1
           ]).
 
+:- module_transparent((is_loop_checked/1,
+            lco_goal_expansion/2,            
+            cyclic_break/1,
+
+            loop_check_early/2,loop_check_term/3,
+            loop_check_term/3,no_loop_check_term/3,loop_check_term_frame/5,
+            
+            loop_check/1,loop_check/2,no_loop_check/1,no_loop_check/2,
+            current_loop_checker/1,
+            push_loop_checker/0,
+            pop_loop_checker/0,
+            transitive/3,
+            transitive_except/4,
+            transitive_lc/3,
+            lc_tcall/1)).
+
+:- set_module(class(library)).  
 :- use_module(library(apply)).
 
 
@@ -33,7 +50,7 @@
         
         loop_check_early(0, 0), loop_check_term(0, ?, 0),
 
-        loop_check_term(0, ?, 0),no_loop_check_term(0, ?, 0),
+        % loop_check_term(0, ?, 0),no_loop_check_term(0, ?, 0),
         
         transitive(2, +, -),
         transitive_except(+, 2, +, -),
@@ -49,7 +66,7 @@
         is_loop_checked/1,
         lco_goal_expansion/2.
         
-:- set_module(class(library)).    
+  
 
 
 
@@ -201,13 +218,22 @@ make_key5(Part1,GoaLs,LC,Part1,[LC|GoaLs]):-numbervars(Part1+GoaLs,242,_,[attvar
 
 
      
-
+% :- meta_predicate(loop_check_term_frame(+,+,+,+,:)).
 loop_check_term_frame(Call,KeyS,GoaL,SearchFrame,LoopCaught):- 
-   prolog_frame_attribute(SearchFrame,parent_goal,
+ % set_prolog_flag(debug,true),
+ set_prolog_flag(last_call_optimisation,false),
+ % set_prolog_flag(gc,false),
+ !,
+   (prolog_frame_attribute(SearchFrame,parent_goal,
       loop_check_term_frame(_,KeyS,GoaL,_,_))
-    -> LoopCaught 
-    ;  Call.
+    -> (LoopCaught,true)
+    ;  (Call,true)),true.
 
+loop_check_term_frame(Call,KeyS,GoaL,SearchFrame,LoopCaught):-  !,
+  ( parent_frame_goal_0(SearchFrame,
+      loop_check_term_frame(_,KeyS,GoaL,_,_))
+    -> (LoopCaught,true)
+    ;  (Call,true)).
 
 
 %% loop_check_term( :Call, +Key, :LoopCaught) is nondet.
