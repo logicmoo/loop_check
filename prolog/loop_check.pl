@@ -227,11 +227,11 @@ loop_check_term_frame(Call,KeyS,GoaL,SearchFrame,LoopCaught):-
    (prolog_frame_attribute(SearchFrame,parent_goal,
       loop_check_term_frame(_,KeyS,GoaL,_,_))
     -> (LoopCaught,true)
-    ;  (Call,true)),true.
+    ;  (loop_check_term_frame_grovel(Call,KeyS,GoaL,SearchFrame,LoopCaught),true)),true.
 
-loop_check_term_frame(Call,KeyS,GoaL,SearchFrame,LoopCaught):-  !,
-  ( parent_frame_goal_0(SearchFrame,
-      loop_check_term_frame(_,KeyS,GoaL,_,_))
+loop_check_term_frame_grovel(Call,KeyS,GoaL,SearchFrame,LoopCaught):-  !,
+  ( notrace(parent_frame_goal_0(SearchFrame,
+      loop_check_term_frame_grovel(_,KeyS,GoaL,_,_)))
     -> (LoopCaught,true)
     ;  (Call,true)).
 
