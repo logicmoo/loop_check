@@ -236,6 +236,29 @@ loop_check_term_frame_grovel(Call,KeyS,GoaL,SearchFrame,LoopCaught):-  !,
     ;  (Call,true)).
 
 
+
+is_parent_goal(G):- prolog_current_frame(F),is_parent_goal(F,G).
+% The user must ensure the checked parent goal is not removed from the stack due 
+% to last-call optimisation 
+is_parent_goal(F,G):- nonvar(G),prolog_frame_attribute(F,parent_goal, G).
+%and be aware of the slow operation on deeply nested calls.
+is_parent_goal(F,G):- prolog_frame_attribute(F,parent,P),parent_frame_goal(P,G).
+
+parent_frame_goal(F,V):- parent_frame_goal_0(F,V0),contains_goalf(V0,V).
+parent_frame_goal_0(F,V):- prolog_frame_attribute(F,goal,V);
+   (prolog_frame_attribute(F,parent,P),parent_frame_goal_0(P,V)).
+
+contains_goalf(V0,V):- nonvar(V),same_goalf(V0,V),!.
+contains_goalf(V0,_):- \+ compound(V0),!,fail.
+contains_goalf(V0,V):- var(V),same_goalf(V0,V).
+contains_goalf(_:V0,V):- !, contains_goalf(V0,V).
+contains_goalf('$execute_directive_3'(V0),V):-!, same_goalf(V0,V).
+contains_goalf('<meta-call>'(V0),V):-!, same_goalf(V0,V).
+contains_goalf(catch(V0,_,_),V):- same_goalf(V0,V).
+contains_goalf(catch(_,_,V0),V):- same_goalf(V0,V).
+same_goalf(V,V).
+
+
 %% loop_check_term( :Call, +Key, :LoopCaught) is nondet.
 %
 % Loop Check Term 50% of the time
