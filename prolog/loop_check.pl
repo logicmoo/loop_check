@@ -39,7 +39,7 @@
 
 %:- use_module(library(tabling)).
 :- use_module(library(each_call_cleanup)).
-:- use_module(library(logicmoo_util_startup)).
+%:- use_module(library(logicmoo_util_startup)).
 
 
 :- meta_predicate  
@@ -310,7 +310,9 @@ lco_goal_expansion(B,A):-
   compound_name_arguments(A,F,AARGS).
 lco_goal_expansion(A,A).
 
+:- if(current_predicate(fixup_exports/0)).
 :- fixup_exports.
+:- endif.
 
 :- multifile system:goal_expansion/4.
 :- dynamic system:goal_expansion/4.
