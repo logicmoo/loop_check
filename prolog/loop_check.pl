@@ -14,6 +14,7 @@
             transitive/3,
             transitive_except/4,
             transitive_lc/3,
+            is_parent_goal/2,
             lc_tcall/1
           ]).
 
